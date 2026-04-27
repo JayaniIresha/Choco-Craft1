@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String    @unique
+  password         String
+  role             String
+  avatar           String?
+  resetToken       String?
+  resetTokenExpiry DateTime?
+
+  reviews Review[]
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id                     String  @id @default(auto()) @map("_id") @db.ObjectId
+  firstName              String?
+  lastName               String?
+  customerEmail          String?
+  country                String?
+  streetAddress          String?
+  streetAddress2         String?
+  city                   String?
+  postcode               String?
+  senderPhone            String?
+  recipientPhone         String?
+  cardQuote              String?
+  orderNotes             String?
+  shipToDifferentAddress Boolean @default(false)
+  status                 String
+  totalPrice             Float
+
+  orderItems OrderItem[]
+  payment    Payment?
+  delivery   Delivery?
+  reviews    Review[]
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId String @db.ObjectId
+  userId  String @db.ObjectId
+  rating  Int
+  comment String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, userId])
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  orderId  String  @unique @db.ObjectId
+  amount   Float
+  method   String
+  status   String
+  imageUrl String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  category    String
+  amount      Float
+  description String?
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Material {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  quantity     Int
+  minimumLevel Int
+  supplierId   String @db.ObjectId
+
+  supplier   Supplier     @relation(fields: [supplierId], references: [id])
+  stockUsage StockUsage[]
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StockUsage {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  materialId   String @db.ObjectId
+  usedQty      Int
+  productionId String @db.ObjectId
+
+  material   Material  @relation(fields: [materialId], references: [id])
+  production Production @relation(fields: [productionId], references: [id])
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Delivery {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId            String   @unique @db.ObjectId
+  deliveryPersonName String
+  vehicleType        String
+  deliveryDate       DateTime
+  status             String
+  specialNotes       String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Production {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId String @db.ObjectId
+  status  String
+
+  stockUsages StockUsage[]
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Recipe {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  ingredients Json
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Supplier {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  name    String
+  email   String
+  phone   String
+  address String
+
+  materials Material[]
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PurchaseOrder {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  supplierId String @db.ObjectId
+  materialId String @db.ObjectId
+  quantity   Int
+  status     String
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String?
+  imageUrl      String?
+  unitPrice     Float   @default(0)
+  inStockAmount Int     @default(0)
+
+  orderItems OrderItem[]
+
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String  @db.ObjectId
+  productId       String  @db.ObjectId
+  quantity        Int
+  unitPrice       Float
+  customizations  Json?   // Array of { id: string, quantity: number }
+  customerMessage String?
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
